@@ -1,6 +1,6 @@
 #include <Adafruit_NeoPixel.h>
 
-#define N_PIXELS 30  // Number of pixels
+#define N_PIXELS 30  // number of pixels in the strip
 #define MIC_PIN 1
 #define LED_PIN 0
 #define SAMPLE_WINDOW 50
@@ -29,7 +29,7 @@ void loop() {
   
   unsigned int level = getLevel();
   
-  if (level > 500) {
+  if (level > THRESHOLD) {
     // changes color if the signal is strong enough
     setStrip(colors[colorIndex]);
     lastChange = millis();
