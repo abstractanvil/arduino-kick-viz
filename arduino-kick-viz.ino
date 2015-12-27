@@ -51,6 +51,9 @@ uint32_t colors[] = {
   strip.Color(255, 255, 255)
 };
 
+// keeps track of how long it has been since the color changed
+unsigned long timeSinceChange = 0;
+
 void setup() {
   memset(vol, 0, sizeof(vol));
   strip.begin();
@@ -75,6 +78,7 @@ void loop() {
   if (height > 15) {
     // changes color if the signal is strong enough
     setStrip(colors[colorIndex]);
+    timeSinceChange = millis();
   } 
   else {
     // go to the next color
@@ -83,6 +87,11 @@ void loop() {
     if (colorIndex >= (sizeof(colors) / sizeof(uint32_t))) {
       colorIndex = 0;
     }
+  }
+
+  if ((millis() - timeSinceChange) > (10000)) {
+    // turn off the lights if there hasn't been a sound for a while
+    setStrip(strip.Color(0,0,0));
   }
 
   strip.show(); // Update strip
@@ -96,6 +105,7 @@ void loop() {
     if(vol[i] < minLvl)      minLvl = vol[i];
     else if(vol[i] > maxLvl) maxLvl = vol[i];
   }
+  
   // minLvl and maxLvl indicate the volume range over prior frames, used
   // for vertically scaling the output graph (so it looks interesting
   // regardless of volume level).  If they're too close together though
