@@ -29,8 +29,6 @@ This paragraph must be included in any redistribution.
 #define NOISE     100  // Noise/hum/interference in mic signal
 #define SAMPLES   60  // Length of buffer for dynamic level adjustment
 #define TOP       (N_PIXELS +1) // Allow dot to go slightly off scale
-// Comment out the next line if you do not want brightness control or have a Gemma
-#define POT_PIN    3  // if defined, a potentiometer is on GPIO #3 (A3, Trinket only) 
 
 byte
   peak      = 0,      // Used for falling dot
@@ -41,14 +39,23 @@ int
   vol[SAMPLES],       // Collection of prior volume samples
   lvl       = 10,     // Current "dampened" audio level
   minLvlAvg = 0,      // For dynamic adjustment of graph low & high
-  maxLvlAvg = 512;
+  maxLvlAvg = 512,
+  colorIndex = 0;
 
 Adafruit_NeoPixel  strip = Adafruit_NeoPixel(N_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+uint32_t colors[] = {
+  strip.Color(255, 0, 0),
+  strip.Color(0, 255, 0),
+  strip.Color(0, 0, 255),
+  strip.Color(255, 255, 255)
+};
 
 void setup() {
   memset(vol, 0, sizeof(vol));
   strip.begin();
 }
+
 void loop() {
   uint8_t  i;
   uint16_t minLvl, maxLvl;
@@ -65,24 +72,20 @@ void loop() {
   else if(height > TOP) height = TOP;
   if(height > peak)     peak   = height; // Keep 'peak' dot at top
 
-// if POT_PIN is defined, we have a potentiometer on GPIO #3 on a Trinket 
-//    (Gemma doesn't have this pin)
-  uint8_t bright = 255;   
-#ifdef POT_PIN            
-   bright = analogRead(POT_PIN);  // Read pin (0-255) (adjust potentiometer 
-                                  //   to give 0 to Vcc volts
-#endif
-  strip.setBrightness(bright);    // Set LED brightness (if POT_PIN at top
-                                  //  define commented out, will be full)
-  // Color pixels based on rainbow gradient
-  for(i=0; i<N_PIXELS; i++) {  
-    if(i >= height)               
-       strip.setPixelColor(i,   0,   0, 0);
-    else 
-       strip.setPixelColor(i,Wheel(map(i,0,strip.numPixels()-1,30,150)));
-    } 
+  if (height > 15) {
+    // changes color if the signal is strong enough
+    setStrip(colors[colorIndex]);
+  } 
+  else {
+    // go to the next color
+    colorIndex++;
 
-   strip.show(); // Update strip
+    if (colorIndex >= (sizeof(colors) / sizeof(uint32_t))) {
+      colorIndex = 0;
+    }
+  }
+
+  strip.show(); // Update strip
 
   vol[volCount] = n;                      // Save sample for dynamic leveling
   if(++volCount >= SAMPLES) volCount = 0; // Advance/rollover sample counter
@@ -104,16 +107,9 @@ void loop() {
   maxLvlAvg = (maxLvlAvg * 63 + maxLvl) >> 6; // (fake rolling average)
 }
 
-// Input a value 0 to 255 to get a color value.
-// The colors are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos) {
-  if(WheelPos < 85) {
-   return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-  } else if(WheelPos < 170) {
-   WheelPos -= 85;
-   return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  } else {
-   WheelPos -= 170;
-   return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+void setStrip(uint32_t color) {
+  for(int i=0; i < N_PIXELS; i++) {  
+    strip.setPixelColor(i, color);
   }
 }
+
