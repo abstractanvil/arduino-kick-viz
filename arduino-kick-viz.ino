@@ -5,10 +5,11 @@
 #define LED_PIN 0
 #define SAMPLE_WINDOW 50
 #define THRESHOLD 500 // minimum level required to change colors
+#define IDLE_TIME 5000 // how long to wait before turning off the LEDs
 
 unsigned int sample;
 
-Adafruit_NeoPixel  strip = Adafruit_NeoPixel(N_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 unsigned int colorIndex = 0;
 uint32_t colors[] = {
@@ -28,27 +29,25 @@ void setup() {
 void loop() {
   
   unsigned int level = getLevel();
-  
+
+  // changes color if the signal is strong enough
   if (level > THRESHOLD) {
-    // changes color if the signal is strong enough
+    
     setStrip(colors[colorIndex]);
+  
     lastChange = millis();
-  } 
-  else {
+  
     // go to the next color
     colorIndex++;
-
     if (colorIndex >= (sizeof(colors) / sizeof(uint32_t))) {
       colorIndex = 0;
     }
   }
 
-  if (since(lastChange) > (10000)) {
-    // turn off the lights if there hasn't been a sound for a while
-    setStrip(strip.Color(0,0,0));
+  // turns off the lights if there hasn't been a sound for a while
+  if (since(lastChange) > (5000)) {
+    setStrip(strip.Color(0, 0, 0));
   }
-
-  strip.show();
 }
 
 // returns a value between 0 and 1023 representing the sound level
@@ -73,15 +72,16 @@ unsigned int getLevel() {
   return signalMax - signalMin;
 }
 
+// returns the number of miliseconds since the given timestamp
+unsigned int since(unsigned int t) {
+  return millis() - t;
+}
+
 // sets all the LEDs in the strip to the given color
 void setStrip(uint32_t color) {
   for(int i=0; i < N_PIXELS; i++) {  
     strip.setPixelColor(i, color);
   }
-}
-
-// returns the number of miliseconds since the given timestamp
-unsigned int since(unsigned int t) {
-  return millis() - t;
+  strip.show();
 }
 
